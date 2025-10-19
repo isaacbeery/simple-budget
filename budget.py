@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Disclaimer:
+# This program is provided "as-is" and comes with no warranty.
+# It is for informational purposes only and should not be considered financial
+# advice. Use at your own risk. The author is not responsible for any
+# financial losses or decisions made as a result of this program.
 
 import argparse
 from datetime import datetime
