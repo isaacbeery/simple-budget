@@ -57,33 +57,34 @@ with open(args.file, newline="") as budgetFile:
     for line in budgetFile:
         row = line.split()
 
-        month = int(row[0].split("-")[0])
+        if row and row[0][0] != "#":
+            month = int(row[0].split("-")[0])
 
-        if month <= currentMonth:
-            monthsInFile.add(month)
-            category = row[1]
-            amount = Decimal(row[-1])
+            if month <= currentMonth:
+                monthsInFile.add(month)
+                category = row[1]
+                amount = Decimal(row[-1])
 
-            if category == BUDGET_INDEX:
-                description = row[2]
+                if category == BUDGET_INDEX:
+                    description = row[2]
 
-                if description == INCOME_INDEX:
-                    totalIncomeYTD += amount
+                    if description == INCOME_INDEX:
+                        totalIncomeYTD += amount
 
-                if month == currentMonth:
-                    budget[description] = amount
-                    if description != INCOME_INDEX:
-                        totalBudgeted += amount
-            else:
-                totalSpentYTD += amount
+                    if month == currentMonth:
+                        budget[description] = amount
+                        if description != INCOME_INDEX:
+                            totalBudgeted += amount
+                else:
+                    totalSpentYTD += amount
 
-                if month == currentMonth:
-                    totalSpent += amount
+                    if month == currentMonth:
+                        totalSpent += amount
 
-                    if category in expenses:
-                        expenses[category] += amount
-                    else:
-                        expenses[category] = amount
+                        if category in expenses:
+                            expenses[category] += amount
+                        else:
+                            expenses[category] = amount
 
 budget[SAVINGS_INDEX] = budget[INCOME_INDEX] - totalBudgeted
 expenses[SAVINGS_INDEX] = budget[INCOME_INDEX] - totalSpent
