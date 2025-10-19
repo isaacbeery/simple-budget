@@ -10,6 +10,10 @@ from datetime import datetime
 from decimal import Decimal
 
 
+def currency(amount):
+    return f"{amount:,.2f}"
+
+
 def print_large_table(category, budgeted, spent="", remaining="", percent=""):
     print(
         f"{category:<11}"
@@ -20,8 +24,13 @@ def print_large_table(category, budgeted, spent="", remaining="", percent=""):
     )
 
 
-def print_small_table(title, amount):
-    print(f"{title:<20}$ {amount:>10,.2f}")
+def print_small_table(category, month, ytd, projection):
+    print(
+        f"{category:<8}",
+        f"{month:>13}",
+        f"{ytd:>13}",
+        f"{projection:>13}"
+    )
 
 
 SAVINGS_INDEX = "SAVINGS"
@@ -115,15 +124,22 @@ projectedIncome = round(totalIncomeYTD / len(monthsInFile) * 12, 2)
 projectedSpent = round(totalSpentYTD / len(monthsInFile) * 12, 2)
 
 print()
-print_small_table("Income", budget[INCOME_INDEX])
-print_small_table("Income YTD", totalIncomeYTD)
-print_small_table("Projected for Year", projectedIncome)
-
-print()
-print_small_table("Spent", totalSpent)
-print_small_table("Spent YTD", totalSpentYTD)
-print_small_table("Projected for Year", projectedSpent)
-
-print()
-print_small_table("Savings YTD", totalIncomeYTD - totalSpentYTD)
-print_small_table("Projected for Year", projectedIncome - projectedSpent)
+print_small_table("SUMMARY", "MONTH", "YTD", "PROJECTED")
+print_small_table(
+    "Income",
+    currency(budget[INCOME_INDEX]),
+    currency(totalIncomeYTD),
+    currency(projectedIncome)
+)
+print_small_table(
+    "Spent",
+    currency(totalSpent),
+    currency(totalSpentYTD),
+    currency(projectedSpent)
+)
+print_small_table(
+    "Saved",
+    currency(expenses[SAVINGS_INDEX]),
+    currency(totalIncomeYTD - totalSpentYTD),
+    currency(projectedIncome - projectedSpent)
+)
