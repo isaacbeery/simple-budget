@@ -43,9 +43,7 @@ parser = argparse.ArgumentParser(
     epilog='Updates and documentation at https://github.com/isaacbeery'
 )
 parser.add_argument(
-    "-f",
-    "--file",
-    required=True,
+    'file',
     help="path to budget file"
 )
 parser.add_argument(
