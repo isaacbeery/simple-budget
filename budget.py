@@ -9,6 +9,10 @@ import argparse
 from datetime import datetime
 from decimal import Decimal
 
+SAVINGS_INDEX = "SAVINGS"
+INCOME_INDEX = "INCOME"
+BUDGET_INDEX = "BUDGET"
+
 
 def currency(amount):
     return f"{amount:,.2f}"
@@ -33,111 +37,110 @@ def print_small_table(category, month, ytd, projection):
     )
 
 
-SAVINGS_INDEX = "SAVINGS"
-INCOME_INDEX = "INCOME"
-BUDGET_INDEX = "BUDGET"
+def main(file, currentMonth):
+    budget = {}
+    expenses = {}
+    monthsInFile = set()
+    totalIncomeYTD = 0
+    totalBudgeted = 0
+    totalSpent = 0
+    totalSpentYTD = 0
 
-parser = argparse.ArgumentParser(
-    prog="budget",
-    description="Run calculations on a budget file.",
-    epilog='Updates and documentation at https://github.com/isaacbeery'
-)
-parser.add_argument(
-    'file',
-    help="path to budget file"
-)
-parser.add_argument(
-    "-m",
-    "--month",
-    type=int,
-    default=datetime.now().month,
-    help="calculate a month other than the current"
-)
+    with open(file, newline="") as budgetFile:
+        for line in budgetFile:
+            row = line.split()
 
-args = parser.parse_args()
-currentMonth = args.month
+            if row and row[0][0] != "#":
+                month = int(row[0].split("-")[0])
 
-budget = {}
-expenses = {}
-monthsInFile = set()
-totalIncomeYTD = 0
-totalBudgeted = 0
-totalSpent = 0
-totalSpentYTD = 0
+                if month <= currentMonth:
+                    monthsInFile.add(month)
+                    category = row[1]
+                    amount = Decimal(row[-1])
 
-with open(args.file, newline="") as budgetFile:
-    for line in budgetFile:
-        row = line.split()
+                    if category == BUDGET_INDEX:
+                        description = row[2]
 
-        if row and row[0][0] != "#":
-            month = int(row[0].split("-")[0])
+                        if description == INCOME_INDEX:
+                            totalIncomeYTD += amount
 
-            if month <= currentMonth:
-                monthsInFile.add(month)
-                category = row[1]
-                amount = Decimal(row[-1])
+                        if month == currentMonth:
+                            budget[description] = amount
+                            if description != INCOME_INDEX:
+                                totalBudgeted += amount
+                    else:
+                        totalSpentYTD += amount
 
-                if category == BUDGET_INDEX:
-                    description = row[2]
+                        if month == currentMonth:
+                            totalSpent += amount
 
-                    if description == INCOME_INDEX:
-                        totalIncomeYTD += amount
+                            if category in expenses:
+                                expenses[category] += amount
+                            else:
+                                expenses[category] = amount
 
-                    if month == currentMonth:
-                        budget[description] = amount
-                        if description != INCOME_INDEX:
-                            totalBudgeted += amount
-                else:
-                    totalSpentYTD += amount
+    budget[SAVINGS_INDEX] = budget[INCOME_INDEX] - totalBudgeted
+    expenses[SAVINGS_INDEX] = budget[INCOME_INDEX] - totalSpent
 
-                    if month == currentMonth:
-                        totalSpent += amount
+    print_large_table("CATEGORY", "BUDGETED", "SPENT", "REMAINING", "PERCENT")
 
-                        if category in expenses:
-                            expenses[category] += amount
-                        else:
-                            expenses[category] = amount
+    for category in expenses:
+        budgeted = budget[category]
+        spent = expenses[category]
+        percent = round(spent / (totalSpent + expenses[SAVINGS_INDEX]) * 100)
 
-budget[SAVINGS_INDEX] = budget[INCOME_INDEX] - totalBudgeted
-expenses[SAVINGS_INDEX] = budget[INCOME_INDEX] - totalSpent
+        remaining = ""
+        if category != SAVINGS_INDEX:
+            remaining = budgeted - spent
 
-print_large_table("CATEGORY", "BUDGETED", "SPENT", "REMAINING", "PERCENT")
+        print_large_table(category, budgeted, spent, remaining, f"{percent} %")
 
-for category in expenses:
-    budgeted = budget[category]
-    spent = expenses[category]
-    percent = round(spent / (totalSpent + expenses[SAVINGS_INDEX]) * 100)
+    for category in budget:
+        if category not in expenses and category != INCOME_INDEX:
+            print_large_table(category, budget[category])
 
-    remaining = ""
-    if category != SAVINGS_INDEX:
-        remaining = budgeted - spent
+    projectedIncome = round(totalIncomeYTD / len(monthsInFile) * 12, 2)
+    projectedSpent = round(totalSpentYTD / len(monthsInFile) * 12, 2)
 
-    print_large_table(category, budgeted, spent, remaining, f"{percent} %")
+    print()
+    print_small_table("SUMMARY", "MONTH", "YTD", "PROJECTED")
+    print_small_table(
+        "Income",
+        currency(budget[INCOME_INDEX]),
+        currency(totalIncomeYTD),
+        currency(projectedIncome)
+    )
+    print_small_table(
+        "Spent",
+        currency(totalSpent),
+        currency(totalSpentYTD),
+        currency(projectedSpent)
+    )
+    print_small_table(
+        "Saved",
+        currency(expenses[SAVINGS_INDEX]),
+        currency(totalIncomeYTD - totalSpentYTD),
+        currency(projectedIncome - projectedSpent)
+    )
 
-for category in budget:
-    if category not in expenses and category != INCOME_INDEX:
-        print_large_table(category, budget[category])
 
-projectedIncome = round(totalIncomeYTD / len(monthsInFile) * 12, 2)
-projectedSpent = round(totalSpentYTD / len(monthsInFile) * 12, 2)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog="budget",
+        description="Run calculations on a budget file.",
+        epilog='Updates and documentation at https://github.com/isaacbeery'
+    )
+    parser.add_argument(
+        'file',
+        help="path to budget file"
+    )
+    parser.add_argument(
+        "-m",
+        "--month",
+        type=int,
+        default=datetime.now().month,
+        help="calculate a month other than the current"
+    )
 
-print()
-print_small_table("SUMMARY", "MONTH", "YTD", "PROJECTED")
-print_small_table(
-    "Income",
-    currency(budget[INCOME_INDEX]),
-    currency(totalIncomeYTD),
-    currency(projectedIncome)
-)
-print_small_table(
-    "Spent",
-    currency(totalSpent),
-    currency(totalSpentYTD),
-    currency(projectedSpent)
-)
-print_small_table(
-    "Saved",
-    currency(expenses[SAVINGS_INDEX]),
-    currency(totalIncomeYTD - totalSpentYTD),
-    currency(projectedIncome - projectedSpent)
-)
+    args = parser.parse_args()
+    main(args.file, args.month)
